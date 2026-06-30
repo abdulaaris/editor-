@@ -8,12 +8,16 @@
   <meta name="theme-color" content="#007acc">
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { background: #1e1e1e; color: #fff; font-family: sans-serif; }
+    body { background: #1e1e1e; color: #fff; font-family: sans-serif; overflow: hidden; }
     #header { background: #007acc; padding: 12px; display: flex; justify-content: space-between; align-items: center; }
     #header h1 { font-size: 18px; }
-    #header button { background: #1e1e1e; color: #fff; border: none; padding: 8px 12px; border-radius: 4px; }
+    #header button { background: #1e1e1e; color: #fff; border: none; padding: 8px 12px; border-radius: 4px; margin-left: 8px; }
     #editor { height: calc(100vh - 50px); width: 100%; }
-    #runBtn { position: fixed; bottom: 20px; right: 20px; background: #007acc; border-radius: 50%; width: 56px; height: 56px; font-size: 24px; }
+    #runBtn {
+      position: fixed; bottom: 20px; right: 20px; background: #007acc;
+      border: none; color: #fff; border-radius: 50%; width: 56px; height: 56px;
+      font-size: 24px; box-shadow: 0 4px 8px rgba(0,0,0,0.3); z-index: 999;
+    }
   </style>
 </head>
 <body>
@@ -34,18 +38,26 @@
     require.config({ paths: { vs: 'https://cdn.jsdelivr.net/npm/monaco-editor@0.45.0/min/vs' }});
     require(['vs/editor/editor.main'], function () {
       editor = monaco.editor.create(document.getElementById('editor'), {
-        value: '<!-- CodeMacha ಗೆ Welcome ಮಚ್ಚಾ -->\n<h1>Hello World</h1>\n<script>\n console.log("Run ಮಾಡಿ ನೋಡು")\n<\/script>',
+        value: '<!-- CodeMacha ಗೆ Welcome ಮಚ್ಚಾ -->\n<h1>Hello World</h1>\n<style>\n h1 { color: #007acc; }\n</style>\n<script>\n console.log("Run ಮಾಡಿ ನೋಡು")\n<\/script>',
         language: 'html',
         theme: 'vs-dark',
         automaticLayout: true,
-        minimap: { enabled: false }
+        minimap: { enabled: false },
+        fontSize: 14,
+        wordWrap: 'on',
+        contextmenu: true,
+        selectOnLineNumbers: true,
+        mouseWheelZoom: true,
+        smoothScrolling: true
       });
     });
 
     function runCode() {
       const code = editor.getValue();
       const win = window.open();
+      win.document.open();
       win.document.write(code);
+      win.document.close();
     }
 
     function saveFile() {
@@ -55,19 +67,25 @@
       a.href = URL.createObjectURL(blob);
       a.download = 'index.html';
       a.click();
+      URL.revokeObjectURL(a.href);
     }
 
     function openFile() {
       const input = document.createElement('input');
       input.type = 'file';
-      input.accept = '.html,.css,.js,.txt';
+      input.accept = '.html,.css,.js,.txt,.json,.md';
       input.onchange = e => {
         const file = e.target.files[0];
+        if (!file) return;
         const reader = new FileReader();
         reader.onload = () => {
           editor.setValue(reader.result);
-          let ext = file.name.split('.').pop();
-          let lang = ext === 'js'? 'javascript' : ext === 'css'? 'css' : 'html';
+          let ext = file.name.split('.').pop().toLowerCase();
+          let langMap = {
+            'js': 'javascript', 'css': 'css', 'html': 'html',
+            'json': 'json', 'md': 'markdown', 'txt': 'plaintext'
+          };
+          let lang = langMap[ext] || 'plaintext';
           monaco.editor.setModelLanguage(editor.getModel(), lang);
         };
         reader.readAsText(file);
