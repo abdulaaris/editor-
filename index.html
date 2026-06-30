@@ -11,7 +11,7 @@
     body { background: #1e1e1e; color: #fff; font-family: sans-serif; overflow: hidden; }
     #header { background: #007acc; padding: 12px; display: flex; justify-content: space-between; align-items: center; }
     #header h1 { font-size: 18px; }
-    #header button { background: #1e1e1e; color: #fff; border: none; padding: 8px 12px; border-radius: 4px; margin-left: 8px; }
+    #header button { background: #1e1e1e; color: #fff; border: none; padding: 6px 10px; border-radius: 4px; margin-left: 5px; font-size: 12px; }
     #editor { height: calc(100vh - 50px); width: 100%; }
     #runBtn {
       position: fixed; bottom: 20px; right: 20px; background: #007acc;
@@ -24,8 +24,10 @@
   <div id="header">
     <h1>CodeMacha Pro</h1>
     <div>
-      <button onclick="saveFile()">💾 Save</button>
-      <button onclick="openFile()">📁 Open</button>
+      <button onclick="selectAllCode()">☰ All</button>
+      <button onclick="copyCode()">📋 Copy</button>
+      <button onclick="saveFile()">💾</button>
+      <button onclick="openFile()">📁</button>
     </div>
   </div>
 
@@ -47,10 +49,23 @@
         wordWrap: 'on',
         contextmenu: true,
         selectOnLineNumbers: true,
-        mouseWheelZoom: true,
-        smoothScrolling: true
+        domReadOnly: false,
+        readOnly: false
       });
     });
+
+    function selectAllCode() {
+      const range = editor.getModel().getFullModelRange();
+      editor.setSelection(range);
+      editor.focus();
+    }
+
+    function copyCode() {
+      const code = editor.getValue();
+      navigator.clipboard.writeText(code).then(() => {
+        alert('Copy ಆಯ್ತು ಮಚ್ಚಾ! 📋');
+      });
+    }
 
     function runCode() {
       const code = editor.getValue();
@@ -81,12 +96,8 @@
         reader.onload = () => {
           editor.setValue(reader.result);
           let ext = file.name.split('.').pop().toLowerCase();
-          let langMap = {
-            'js': 'javascript', 'css': 'css', 'html': 'html',
-            'json': 'json', 'md': 'markdown', 'txt': 'plaintext'
-          };
-          let lang = langMap[ext] || 'plaintext';
-          monaco.editor.setModelLanguage(editor.getModel(), lang);
+          let langMap = { 'js': 'javascript', 'css': 'css', 'html': 'html', 'json': 'json', 'md': 'markdown', 'txt': 'plaintext' };
+          monaco.editor.setModelLanguage(editor.getModel(), langMap[ext] || 'plaintext');
         };
         reader.readAsText(file);
       };
