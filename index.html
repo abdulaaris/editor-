@@ -26,8 +26,8 @@
     <div>
       <button onclick="selectAllCode()">☰ All</button>
       <button onclick="copyCode()">📋 Copy</button>
-      <button onclick="saveFile()">💾</button>
-      <button onclick="openFile()">📁</button>
+      <button onclick="saveFile()">💾 Save</button>
+      <button onclick="openFile()">📁 Open</button>
     </div>
   </div>
 
@@ -49,8 +49,8 @@
         wordWrap: 'on',
         contextmenu: true,
         selectOnLineNumbers: true,
-        domReadOnly: false,
-        readOnly: false
+        mouseWheelZoom: true,
+        smoothScrolling: true
       });
     });
 
@@ -75,33 +75,86 @@
       win.document.close();
     }
 
-    function saveFile() {
+    async function saveFile() {
       const code = editor.getValue();
-      const blob = new Blob([code], { type: 'text/html' });
-      const a = document.createElement('a');
-      a.href = URL.createObjectURL(blob);
-      a.download = 'index.html';
-      a.click();
-      URL.revokeObjectURL(a.href);
+
+      if (!window.showSaveFilePicker) {
+        alert('ಮಚ್ಚಾ, ನಿನ್ನ browser support ಮಾಡಲ್ಲ. Direct download ಮಾಡ್ತೀನಿ');
+        const blob = new Blob([code], { type: 'text/html' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = 'index.html';
+        a.click();
+        URL.revokeObjectURL(a.href);
+        return;
+      }
+
+      try {
+        const handle = await window.showSaveFilePicker({
+          suggestedName: 'index.html',
+          types: [
+            { description: 'HTML', accept: { 'text/html': ['.html'] } },
+            { description: 'CSS', accept: { 'text/css': ['.css'] } },
+            { description: 'JavaScript', accept: { 'text/javascript': ['.js'] } },
+            { description: 'JSON', accept: { 'application/json': ['.json'] } },
+            { description: 'All Files', accept: { 'text/plain': ['.txt', '.md'] } }
+          ],
+        });
+        const writable = await handle.createWritable();
+        await writable.write(code);
+        await writable.close();
+        alert('File save ಆಯ್ತು ಮಚ್ಚಾ! 📁');
+      } catch (err) {
+        if (err.name!== 'AbortError') {
+          console.error(err);
+          alert('Save ಮಾಡೋಕೆ ಆಗ್ಲಿಲ್ಲ ಮಚ್ಚಾ 😥');
+        }
+      }
     }
 
-    function openFile() {
-      const input = document.createElement('input');
-      input.type = 'file';
-      input.accept = '.html,.css,.js,.txt,.json,.md';
-      input.onchange = e => {
-        const file = e.target.files[0];
-        if (!file) return;
-        const reader = new FileReader();
-        reader.onload = () => {
-          editor.setValue(reader.result);
-          let ext = file.name.split('.').pop().toLowerCase();
-          let langMap = { 'js': 'javascript', 'css': 'css', 'html': 'html', 'json': 'json', 'md': 'markdown', 'txt': 'plaintext' };
-          monaco.editor.setModelLanguage(editor.getModel(), langMap[ext] || 'plaintext');
+    async function openFile() {
+      if (!window.showOpenFilePicker) {
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = '.html,.css,.js,.txt,.json,.md';
+        input.onchange = e => {
+          const file = e.target.files[0];
+          if (!file) return;
+          const reader = new FileReader();
+          reader.onload = () => {
+            editor.setValue(reader.result);
+            let ext = file.name.split('.').pop().toLowerCase();
+            let langMap = { 'js': 'javascript', 'css': 'css', 'html': 'html', 'json': 'json', 'md': 'markdown', 'txt': 'plaintext' };
+            monaco.editor.setModelLanguage(editor.getModel(), langMap[ext] || 'plaintext');
+          };
+          reader.readAsText(file);
         };
-        reader.readAsText(file);
-      };
-      input.click();
+        input.click();
+        return;
+      }
+
+      try {
+        const [handle] = await window.showOpenFilePicker({
+          types: [{
+            description: 'Code Files',
+            accept: {
+              'text/html': ['.html'],
+              'text/css': ['.css'],
+              'text/javascript': ['.js'],
+              'application/json': ['.json'],
+              'text/plain': ['.txt', '.md']
+            }
+          }]
+        });
+        const file = await handle.getFile();
+        const contents = await file.text();
+        editor.setValue(contents);
+        let ext = file.name.split('.').pop().toLowerCase();
+        let langMap = { 'js': 'javascript', 'css': 'css', 'html': 'html', 'json': 'json', 'md': 'markdown', 'txt': 'plaintext' };
+        monaco.editor.setModelLanguage(editor.getModel(), langMap[ext] || 'plaintext');
+      } catch (err) {
+        if (err.name!== 'AbortError') console.error(err);
+      }
     }
 
     if ('serviceWorker' in navigator) {
