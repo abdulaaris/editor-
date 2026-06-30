@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="kn">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CodeMacha Pro</title>
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#007acc">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { background: #1e1e1e; color: #fff; font-family: sans-serif; }
+    #header { background: #007acc; padding: 12px; display: flex; justify-content: space-between; align-items: center; }
+    #header h1 { font-size: 18px; }
+    #header button { background: #1e1e1e; color: #fff; border: none; padding: 8px 12px; border-radius: 4px; }
+    #editor { height: calc(100vh - 50px); width: 100%; }
+    #runBtn { position: fixed; bottom: 20px; right: 20px; background: #007acc; border-radius: 50%; width: 56px; height: 56px; font-size: 24px; }
+  </style>
+</head>
+<body>
+  <div id="header">
+    <h1>CodeMacha Pro</h1>
+    <div>
+      <button onclick="saveFile()">💾 Save</button>
+      <button onclick="openFile()">📁 Open</button>
+    </div>
+  </div>
+
+  <div id="editor"></div>
+  <button id="runBtn" onclick="runCode()">▶</button>
+
+  <script src="https://cdn.jsdelivr.net/npm/monaco-editor@0.45.0/min/vs/loader.js"></script>
+  <script>
+    let editor;
+    require.config({ paths: { vs: 'https://cdn.jsdelivr.net/npm/monaco-editor@0.45.0/min/vs' }});
+    require(['vs/editor/editor.main'], function () {
+      editor = monaco.editor.create(document.getElementById('editor'), {
+        value: '<!-- CodeMacha ಗೆ Welcome ಮಚ್ಚಾ -->\n<h1>Hello World</h1>\n<script>\n console.log("Run ಮಾಡಿ ನೋಡು")\n<\/script>',
+        language: 'html',
+        theme: 'vs-dark',
+        automaticLayout: true,
+        minimap: { enabled: false }
+      });
+    });
+
+    function runCode() {
+      const code = editor.getValue();
+      const win = window.open();
+      win.document.write(code);
+    }
+
+    function saveFile() {
+      const code = editor.getValue();
+      const blob = new Blob([code], { type: 'text/html' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'index.html';
+      a.click();
+    }
+
+    function openFile() {
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.accept = '.html,.css,.js,.txt';
+      input.onchange = e => {
+        const file = e.target.files[0];
+        const reader = new FileReader();
+        reader.onload = () => {
+          editor.setValue(reader.result);
+          let ext = file.name.split('.').pop();
+          let lang = ext === 'js'? 'javascript' : ext === 'css'? 'css' : 'html';
+          monaco.editor.setModelLanguage(editor.getModel(), lang);
+        };
+        reader.readAsText(file);
+      };
+      input.click();
+    }
+
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('sw.js');
+    }
+  </script>
+</body>
+</html>
