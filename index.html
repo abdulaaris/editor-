@@ -10,8 +10,9 @@
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body { background: #1e1e1e; color: #fff; font-family: sans-serif; overflow: hidden; }
     #header { background: #007acc; padding: 12px; display: flex; justify-content: space-between; align-items: center; }
-    #header h1 { font-size: 18px; }
-    #header button { background: #1e1e1e; color: #fff; border: none; padding: 6px 10px; border-radius: 4px; margin-left: 5px; font-size: 12px; }
+    #header h1 { font-size: 15px; }
+    #header div { display: flex; gap: 3px; flex-wrap: wrap; }
+    #header button { background: #1e1e1e; color: #fff; border: none; padding: 5px 7px; border-radius: 4px; font-size: 10px; }
     #editor { height: calc(100vh - 50px); width: 100%; }
     #runBtn {
       position: fixed; bottom: 20px; right: 20px; background: #007acc;
@@ -24,10 +25,13 @@
   <div id="header">
     <h1>CodeMacha Pro</h1>
     <div>
-      <button onclick="selectAllCode()">☰ All</button>
-      <button onclick="copyCode()">📋 Copy</button>
-      <button onclick="saveFile()">💾 Save</button>
-      <button onclick="openFile()">📁 Open</button>
+      <button onclick="findCode()">🔍</button>
+      <button onclick="replaceCode()">🔄</button>
+      <button onclick="clearAllCode()">🗑️</button>
+      <button onclick="selectAllCode()">☰</button>
+      <button onclick="copyCode()">📋</button>
+      <button onclick="saveFile()">💾</button>
+      <button onclick="openFile()">📁</button>
     </div>
   </div>
 
@@ -39,8 +43,10 @@
     let editor;
     require.config({ paths: { vs: 'https://cdn.jsdelivr.net/npm/monaco-editor@0.45.0/min/vs' }});
     require(['vs/editor/editor.main'], function () {
+      const savedCode = localStorage.getItem('codemacha_code') || '<!-- CodeMacha ಗೆ Welcome ಮಚ್ಚಾ -->\n<h1>Hello World</h1>\n<style>\n h1 { color: #007acc; }\n</style>\n<script>\n console.log("Run ಮಾಡಿ ನೋಡು")\n<\/script>';
+
       editor = monaco.editor.create(document.getElementById('editor'), {
-        value: '<!-- CodeMacha ಗೆ Welcome ಮಚ್ಚಾ -->\n<h1>Hello World</h1>\n<style>\n h1 { color: #007acc; }\n</style>\n<script>\n console.log("Run ಮಾಡಿ ನೋಡು")\n<\/script>',
+        value: savedCode,
         language: 'html',
         theme: 'vs-dark',
         automaticLayout: true,
@@ -50,9 +56,36 @@
         contextmenu: true,
         selectOnLineNumbers: true,
         mouseWheelZoom: true,
-        smoothScrolling: true
+        smoothScrolling: true,
+        find: {
+          addExtraSpaceOnTop: false,
+          autoFindInSelection: 'never',
+          seedSearchStringFromSelection: 'always'
+        }
+      });
+
+      // Auto save to localStorage
+      editor.onDidChangeModelContent(() => {
+        localStorage.setItem('codemacha_code', editor.getValue());
       });
     });
+
+    function findCode() {
+      editor.focus();
+      editor.getAction('actions.find').run();
+    }
+
+    function replaceCode() {
+      editor.focus();
+      editor.getAction('editor.action.startFindReplaceAction').run();
+    }
+
+    function clearAllCode() {
+      if (confirm('ಎಲ್ಲಾ code delete ಮಾಡ್ಲಾ ಮಚ್ಚಾ? 🗑️')) {
+        editor.setValue('');
+        localStorage.removeItem('codemacha_code');
+      }
+    }
 
     function selectAllCode() {
       const range = editor.getModel().getFullModelRange();
@@ -77,7 +110,6 @@
 
     async function saveFile() {
       const code = editor.getValue();
-
       if (!window.showSaveFilePicker) {
         const blob = new Blob([code], { type: 'text/html' });
         const a = document.createElement('a');
@@ -87,15 +119,12 @@
         URL.revokeObjectURL(a.href);
         return;
       }
-
       try {
         const model = editor.getModel();
         const lang = model.getLanguageId();
-
         let suggestedName = 'index.html';
         let fileType = { 'text/html': ['.html'] };
         let description = 'HTML File';
-
         if (lang === 'css') {
           suggestedName = 'style.css';
           fileType = { 'text/css': ['.css'] };
@@ -109,22 +138,17 @@
           fileType = { 'application/json': ['.json'] };
           description = 'JSON File';
         }
-
         const handle = await window.showSaveFilePicker({
           suggestedName: suggestedName,
           types: [{ description: description, accept: fileType }],
           startIn: 'downloads'
         });
-
         const writable = await handle.createWritable();
         await writable.write(code);
         await writable.close();
         alert('File save ಆಯ್ತು ಮಚ್ಚಾ! 📁');
       } catch (err) {
-        if (err.name!== 'AbortError') {
-          console.error(err);
-          alert('Save ಮಾಡೋಕೆ ಆಗ್ಲಿಲ್ಲ ಮಚ್ಚಾ 😥');
-        }
+        if (err.name!== 'AbortError') console.error(err);
       }
     }
 
@@ -142,13 +166,13 @@
             let ext = file.name.split('.').pop().toLowerCase();
             let langMap = { 'js': 'javascript', 'css': 'css', 'html': 'html', 'json': 'json', 'md': 'markdown', 'txt': 'plaintext' };
             monaco.editor.setModelLanguage(editor.getModel(), langMap[ext] || 'plaintext');
+            localStorage.setItem('codemacha_code', reader.result);
           };
           reader.readAsText(file);
         };
         input.click();
         return;
       }
-
       try {
         const [handle] = await window.showOpenFilePicker({
           types: [{
@@ -168,6 +192,7 @@
         let ext = file.name.split('.').pop().toLowerCase();
         let langMap = { 'js': 'javascript', 'css': 'css', 'html': 'html', 'json': 'json', 'md': 'markdown', 'txt': 'plaintext' };
         monaco.editor.setModelLanguage(editor.getModel(), langMap[ext] || 'plaintext');
+        localStorage.setItem('codemacha_code', contents);
       } catch (err) {
         if (err.name!== 'AbortError') console.error(err);
       }
