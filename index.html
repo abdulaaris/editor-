@@ -10,9 +10,9 @@
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body { background: #1e1e1e; color: #fff; font-family: sans-serif; overflow: hidden; }
     #header { background: #007acc; padding: 12px; display: flex; justify-content: space-between; align-items: center; }
-    #header h1 { font-size: 15px; }
+    #header h1 { font-size: 14px; }
     #header div { display: flex; gap: 3px; flex-wrap: wrap; }
-    #header button { background: #1e1e1e; color: #fff; border: none; padding: 5px 7px; border-radius: 4px; font-size: 10px; }
+    #header button { background: #1e1e1e; color: #fff; border: none; padding: 5px 6px; border-radius: 4px; font-size: 10px; }
     #editor { height: calc(100vh - 50px); width: 100%; }
     #runBtn {
       position: fixed; bottom: 20px; right: 20px; background: #007acc;
@@ -27,9 +27,10 @@
     <div>
       <button onclick="findCode()">🔍</button>
       <button onclick="replaceCode()">🔄</button>
-      <button onclick="clearAllCode()">🗑️</button>
+      <button onclick="clearAllCode()">❌</button>
       <button onclick="selectAllCode()">☰</button>
-      <button onclick="copyCode()">📋</button>
+      <button onclick="copyCode()">📝</button>
+      <button onclick="pasteCode()">📋</button>
       <button onclick="saveFile()">💾</button>
       <button onclick="openFile()">📁</button>
     </div>
@@ -60,11 +61,11 @@
         find: {
           addExtraSpaceOnTop: false,
           autoFindInSelection: 'never',
-          seedSearchStringFromSelection: 'always'
+          seedSearchStringFromSelection: 'always',
+          showResultCount: true
         }
       });
 
-      // Auto save to localStorage
       editor.onDidChangeModelContent(() => {
         localStorage.setItem('codemacha_code', editor.getValue());
       });
@@ -98,6 +99,19 @@
       navigator.clipboard.writeText(code).then(() => {
         alert('Copy ಆಯ್ತು ಮಚ್ಚಾ! 📋');
       });
+    }
+
+    async function pasteCode() {
+      try {
+        const text = await navigator.clipboard.readText();
+        editor.executeEdits('', [{
+          range: editor.getSelection(),
+          text: text
+        }]);
+        editor.focus();
+      } catch (err) {
+        alert('Paste ಆಗ್ಲಿಲ್ಲ ಮಚ್ಚಾ 😥 Browser permission ಕೊಡು. Site settings ನಲ್ಲಿ Clipboard Allow ಮಾಡು');
+      }
     }
 
     function runCode() {
