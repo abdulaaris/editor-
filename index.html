@@ -79,7 +79,6 @@
       const code = editor.getValue();
 
       if (!window.showSaveFilePicker) {
-        alert('ಮಚ್ಚಾ, ನಿನ್ನ browser support ಮಾಡಲ್ಲ. Direct download ಮಾಡ್ತೀನಿ');
         const blob = new Blob([code], { type: 'text/html' });
         const a = document.createElement('a');
         a.href = URL.createObjectURL(blob);
@@ -90,16 +89,33 @@
       }
 
       try {
+        const model = editor.getModel();
+        const lang = model.getLanguageId();
+
+        let suggestedName = 'index.html';
+        let fileType = { 'text/html': ['.html'] };
+        let description = 'HTML File';
+
+        if (lang === 'css') {
+          suggestedName = 'style.css';
+          fileType = { 'text/css': ['.css'] };
+          description = 'CSS File';
+        } else if (lang === 'javascript') {
+          suggestedName = 'script.js';
+          fileType = { 'text/javascript': ['.js'] };
+          description = 'JavaScript File';
+        } else if (lang === 'json') {
+          suggestedName = 'data.json';
+          fileType = { 'application/json': ['.json'] };
+          description = 'JSON File';
+        }
+
         const handle = await window.showSaveFilePicker({
-          suggestedName: 'index.html',
-          types: [
-            { description: 'HTML', accept: { 'text/html': ['.html'] } },
-            { description: 'CSS', accept: { 'text/css': ['.css'] } },
-            { description: 'JavaScript', accept: { 'text/javascript': ['.js'] } },
-            { description: 'JSON', accept: { 'application/json': ['.json'] } },
-            { description: 'All Files', accept: { 'text/plain': ['.txt', '.md'] } }
-          ],
+          suggestedName: suggestedName,
+          types: [{ description: description, accept: fileType }],
+          startIn: 'downloads'
         });
+
         const writable = await handle.createWritable();
         await writable.write(code);
         await writable.close();
